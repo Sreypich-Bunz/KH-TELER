@@ -1,0 +1,25 @@
+{
+  "name": "KH TELER - Cambodia Tel Prefix Checker",
+  "short_name": "KH TELER",
+  "description": "Check any Cambodian telephone prefix instantly — mobile carriers and landlines.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f0",
+  "theme_color": "#1B3A6B",
+  "lang": "km",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

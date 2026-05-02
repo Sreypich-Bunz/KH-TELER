@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KH TELER</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1B3A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="KH TELER">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Hanuman:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f0;
+    --surface: #eaeae4;
+    --card: #ffffff;
+    --border: #d0cfc8;
+    --text: #1a1a2e;
+    --muted: #6b6b80;
+    --red: #C40C0C;
+    --blue: #1B3A6B;
+    --white: #fff;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 68px 20px 80px;
+  }
+
+  body.km { font-family: 'Hanuman', serif; }
+  body.km h1 { letter-spacing: 0; line-height: 1.5; }
+  body.km .sub, body.km .input-label, body.km .quick-refs-title,
+  body.km button#check-btn, body.km .result-type, body.km .result-detail,
+  body.km .chip-name, body.km .install-top-btn,
+  body.km .popup-msg, body.km .popup-install-btn { font-family: 'Hanuman', serif; letter-spacing: 0; }
+
+  /* ── Flag stripe ── */
+  .flag-stripe { position: fixed; top: 0; left: 0; right: 0; display: flex; height: 6px; z-index: 200; }
+  .flag-stripe span:nth-child(1) { flex: 1; background: #1B3A6B; }
+  .flag-stripe span:nth-child(2) { flex: 2; background: #C40C0C; }
+  .flag-stripe span:nth-child(3) { flex: 1; background: #1B3A6B; }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  /* ── Install banner at top ── */
+  .install-bar {
+    position: fixed;
+    top: 6px; left: 0; right: 0;
+    background: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    gap: 12px;
+    z-index: 150;
+    display: none; /* shown by JS when installable */
+  }
+
+  .install-bar.visible { display: flex; }
+
+  .install-bar-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .install-top-btn {
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .install-top-btn:hover { opacity: 0.88; }
+
+  .install-bar-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    margin-left: 4px;
+  }
+
+  /* ── Install popup overlay ── */
+  .popup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .popup-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .popup-sheet {
+    background: var(--card);
+    border-radius: 20px 20px 0 0;
+    padding: 28px 28px 40px;
+    width: 100%;
+    max-width: 560px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .popup-overlay.visible .popup-sheet {
+    transform: translateY(0);
+  }
+
+  .popup-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    margin: 0 auto 24px;
+  }
+
+  .popup-icon {
+    font-size: 36px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .popup-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--blue);
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .popup-msg {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .popup-msg-km {
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.8;
+    margin-bottom: 24px;
+    font-family: 'Hanuman', serif;
+  }
+
+  .popup-install-btn {
+    width: 100%;
+    height: 52px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-bottom: 12px;
+  }
+
+  .popup-install-btn:hover { opacity: 0.9; }
+  .popup-install-btn:active { transform: scale(0.98); }
+
+  .popup-dismiss {
+    width: 100%;
+    height: 44px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .popup-dismiss:hover { background: var(--surface); }
+
+  /* ── Main layout ── */
+  .wrap { position: relative; z-index: 1; width: 100%; max-width: 560px; }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 10px;
+  }
+
+  /* Inline install button (shown when bar is hidden / already installed) */
+  .install-inline-btn {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.15s;
+  }
+
+  .install-inline-btn:hover { opacity: 0.88; }
+  .install-inline-btn .dl-icon { font-size: 14px; }
+
+  .lang-toggle-inner {
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .lang-btn {
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: background 0.18s, color 0.18s;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.04em;
+  }
+
+  .lang-btn.km-btn { font-family: 'Hanuman', serif; letter-spacing: 0; font-size: 15px; }
+  .lang-btn.active { background: var(--blue); color: #fff; }
+
+  .header { text-align: center; margin-bottom: 52px; }
+  .flag { font-size: 22px; font-weight: 800; letter-spacing: 0.06em; color: var(--blue); display: block; margin-bottom: 10px; }
+
+  h1 {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--blue);
+  }
+
+  h1 span { color: var(--red); }
+
+  .sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .input-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .input-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .input-row { display: flex; gap: 12px; align-items: stretch; }
+
+  .prefix-hint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 20px;
+    height: 54px;
+    font-size: 26px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--blue);
+    outline: none;
+    appearance: textfield;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus { border-color: var(--red); }
+  input[type="number"]::placeholder { color: #bbb; }
+
+  button#check-btn {
+    margin-top: 16px;
+    width: 100%;
+    height: 50px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  button#check-btn:hover { opacity: 0.9; }
+  button#check-btn:active { transform: scale(0.98); }
+
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    display: none;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card.visible { display: block; }
+  .result-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .result-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .result-type {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .result-name { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+
+  .result-detail {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 4px;
+  }
+
+  .error-card {
+    background: rgba(196,12,12,0.05);
+    border: 1px solid rgba(196,12,12,0.25);
+  }
+
+  .quick-refs { margin-top: 40px; }
+
+  .quick-refs-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .carrier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  .carrier-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .carrier-chip:hover { border-color: #1B3A6B; background: #f0f2f8; }
+  .chip-name { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
+
+  .chip-prefixes {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.5;
+  }
+
+  .footer { margin-top: 56px; text-align: center; font-size: 12px; color: #aaa; font-family: 'DM Mono', monospace; }
+
+  /* Already installed state */
+  .install-inline-btn.installed {
+    background: #d0cfc8;
+    color: #888;
+    cursor: default;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="flag-stripe"><span></span><span></span><span></span></div>
+<div class="noise"></div>
+
+<!-- TOP INSTALL BAR (appears automatically when browser signals installable) -->
+<div class="install-bar" id="install-bar">
+  <span class="install-bar-text" id="bar-text"></span>
+  <button class="install-top-btn" id="bar-install-btn" onclick="triggerInstall()"></button>
+  <button class="install-bar-close" onclick="hideInstallBar()" aria-label="Close">×</button>
+</div>
+
+<!-- INSTALL POPUP (bottom sheet) -->
+<div class="popup-overlay" id="popup-overlay" onclick="handleOverlayClick(event)">
+  <div class="popup-sheet">
+    <div class="popup-handle"></div>
+    <div class="popup-icon">📱</div>
+    <div class="popup-title">KH TELER</div>
+    <p class="popup-msg" id="popup-msg-en">Add the App to your home screen to use it offline.</p>
+    <p class="popup-msg-km" id="popup-msg-km">សូមទាញយកកម្មវិធីដើម្បីប្រើដោយគ្មានអុីនធឺណេត</p>
+    <button class="popup-install-btn" id="popup-install-btn" onclick="triggerInstall()"></button>
+    <button class="popup-dismiss" onclick="hidePopup()">Maybe later / នៅពេលក្រោយ</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- TOP ROW: install button + language toggle -->
+  <div class="top-row">
+    <button class="install-inline-btn" id="inline-install-btn" onclick="showPopup()">
+      <span class="dl-icon">⬇️</span>
+      <span id="inline-btn-label"></span>
+    </button>
+    <div class="lang-toggle-inner">
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">English</button>
+      <button class="lang-btn km-btn" id="btn-km" onclick="setLang('km')">ភាសាខ្មែរ</button>
+    </div>
+  </div>
+
+  <header class="header">
+    <span class="flag">KH TELER</span>
+    <h1 id="title-main"></h1>
+    <p class="sub" id="subtitle"></p>
+  </header>
+
+  <div class="input-card">
+    <label class="input-label" id="input-label" for="prefix-input"></label>
+    <div class="input-row">
+      <div class="prefix-hint">+855</div>
+      <input type="number" id="prefix-input" min="10" max="99" placeholder="85" />
+    </div>
+    <button id="check-btn" onclick="checkPrefix()"></button>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="result-top">
+      <div class="result-dot" id="result-dot"></div>
+      <span class="result-type" id="result-type"></span>
+    </div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-detail" id="result-detail"></div>
+  </div>
+
+  <div class="quick-refs">
+    <p class="quick-refs-title" id="quick-ref-title"></p>
+    <div class="carrier-grid" id="carrier-grid"></div>
+  </div>
+
+  <footer class="footer" id="footer-text"></footer>
+</div>
+
+<script>
+// ── PWA install logic ──────────────────────────────────────────────
+let deferredPrompt = null;
+let isInstalled = false;
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// Catch the browser's install prompt event and hold it
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBar();
+  // Show popup automatically after 3 seconds on first visit
+  if (!sessionStorage.getItem('popup-shown')) {
+    setTimeout(() => {
+      showPopup();
+      sessionStorage.setItem('popup-shown', '1');
+    }, 3000);
+  }
+});
+
+// Detect if already installed (standalone mode)
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+  isInstalled = true;
+}
+
+window.addEventListener('appinstalled', () => {
+  isInstalled = true;
+  deferredPrompt = null;
+  hideInstallBar();
+  hidePopup();
+  markInstalled();
+});
+
+function showInstallBar() {
+  if (isInstalled) return;
+  document.getElementById('install-bar').classList.add('visible');
+  // Offset body so bar doesn't overlap content
+  document.body.style.paddingTop = '116px';
+}
+
+function hideInstallBar() {
+  document.getElementById('install-bar').classList.remove('visible');
+  document.body.style.paddingTop = '68px';
+}
+
+function showPopup() {
+  if (isInstalled) return;
+  document.getElementById('popup-overlay').classList.add('visible');
+}
+
+function hidePopup() {
+  document.getElementById('popup-overlay').classList.remove('visible');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('popup-overlay')) hidePopup();
+}
+
+async function triggerInstall() {
+  if (!deferredPrompt) {
+    // Browser doesn't support automatic prompt (e.g. iOS Safari)
+    // Show manual instructions
+    alert(lang === 'km'
+      ? 'iOS: ចុច Share ហើយជ្រើស "Add to Home Screen"\nAndroid: ចូលទៅ Menu ហើយជ្រើស "Add to Home Screen"'
+      : 'iOS: Tap Share → "Add to Home Screen"\nAndroid: Tap Menu → "Add to Home Screen"'
+    );
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    deferredPrompt = null;
+    hidePopup();
+    hideInstallBar();
+  }
+}
+
+function markInstalled() {
+  const btn = document.getElementById('inline-install-btn');
+  btn.classList.add('installed');
+  btn.querySelector('#inline-btn-label').textContent = lang === 'km' ? 'បានទាញយករួចហើយ' : 'Installed ✓';
+}
+
+// ── Translations ───────────────────────────────────────────────────
+const strings = {
+  en: {
+    titleMain: 'Cambodia <span>Telephone Prefix</span><br>Checker',
+    subtitle: 'Enter a 2-digit prefix — get the carrier',
+    inputLabel: 'Telephone prefix',
+    checkBtn: 'Check prefix',
+    quickRefTitle: 'Quick reference — click a carrier',
+    footer: 'Prefix data reflects Cambodia telecom registry',
+    typeMobile: 'Mobile carrier',
+    typeLandline: 'Landline',
+    typeError: 'Error',
+    typeUnknown: 'Unknown',
+    invalidMsg: 'Invalid prefix',
+    invalidDetail: 'Please enter a number between 10 and 99.',
+    notRegistered: 'Not registered',
+    notRegisteredDetail: "Prefix {val} doesn't match any known Cambodia line.",
+    landlineDetail: 'Prefix {val} → landline in {place}',
+    mobileDetail: 'Prefix {val} → {carrier}',
+    landlineChip: 'LANDLINE',
+    landlineChipSub: '23–75 (province)',
+    installBtnLabel: 'Add App to Home Screen',
+    barText: 'Install for offline use →',
+    barBtn: 'Install',
+    popupInstallBtn: 'Add App to Home Screen',
+    inlineBtnLabel: 'Add App to Home Screen',
+  },
+  km: {
+    titleMain: 'ស្វែងរកមេីល <span>ប្រព័ន្ធខ្សែទូរស័ព្ទ</span><br>នៅកម្ពុជា',
+    subtitle: 'បញ្ចូលក្បាលលេខទូរស័ព្ទ ២ ខ្ទង់ — ដើម្បីដឹងក្រុមហ៊ុន',
+    inputLabel: 'ក្បាលលេខទូរស័ព្ទ',
+    checkBtn: 'ត្រួតពិនិត្យ',
+    quickRefTitle: 'ឯកសារយោង — ចុចលើក្រុមហ៊ុន',
+    footer: 'ទិន្នន័យពីបញ្ជីទូរគមនាគមន៍កម្ពុជា',
+    typeMobile: 'ទូរស័ព្ទចល័ត',
+    typeLandline: 'ទូរស័ព្ទដែន',
+    typeError: 'កំហុស',
+    typeUnknown: 'មិនស្គាល់',
+    invalidMsg: 'ក្បាលទូរស័ព្ទមិនត្រឹមត្រូវ',
+    invalidDetail: 'សូមបញ្ចូលលេខចន្លោះពី ១០ ដល់ ៩៩។',
+    notRegistered: 'មិនមានក្នុងបញ្ជី',
+    notRegisteredDetail: 'ក្បាលទូរស័ព្ទ {val} មិនត្រូវគ្នានឹងខ្សែទូរស័ព្ទកម្ពុជាណាមួយឡើយ។',
+    landlineDetail: 'ក្បាលទូរស័ព្ទ {val} → ទូរស័ព្ទដែននៅ {place}',
+    mobileDetail: 'ក្បាលទូរស័ព្ត {val} → {carrier}',
+    landlineChip: 'ទូរស័ព្ទដែន',
+    landlineChipSub: '២៣–៧៥ (ខេត្តក្រុង)',
+    installBtnLabel: 'ទាញយកកម្មវិធី',
+    barText: 'ដំឡើងដើម្បីប្រើដោយគ្មានអ៊ីនធឺណេត →',
+    barBtn: 'ទាញយក',
+    popupInstallBtn: 'ទាញយកកម្មវិធី',
+    inlineBtnLabel: 'ទាញយកកម្មវិធី',
+  }
+};
+
+const landlineEn = {
+  23:'Phnom Penh', 24:'Kandal', 25:'Kampong Speu', 26:'Kampong Chhnang',
+  32:'Takeo', 33:'Kampot', 34:'Sihanoukville', 35:'Koh Kong', 36:'Kep',
+  42:'Kampong Cham', 43:'Prey Veng', 44:'Svay Rieng', 45:'Tbong Khmum',
+  52:'Pursat', 53:'Battambang', 54:'Banteay Meanchey', 55:'Pailin',
+  62:'Kampong Thom', 63:'Siem Reap', 64:'Preah Vihear', 65:'Oddar Meanchey',
+  72:'Kratie', 73:'Mondulkiri', 74:'Stung Treng', 75:'Ratanakiri'
+};
+
+const landlineKm = {
+  23:'ភ្នំពេញ', 24:'កណ្ដាល', 25:'កំពង់ស្ពឺ', 26:'កំពង់ឆ្នាំង',
+  32:'តាកែវ', 33:'កំពត', 34:'ព្រះសីហនុ', 35:'កោះកុង', 36:'កែប',
+  42:'កំពង់ចាម', 43:'ព្រៃវែង', 44:'ស្វាយរៀង', 45:'ត្បូងឃ្មុំ',
+  52:'បុរីរាំង', 53:'បាត់ដំបង', 54:'បន្ទាយមានជ័យ', 55:'ប៉ៃលិន',
+  62:'កំពង់ធំ', 63:'សៀមរាប', 64:'ព្រះវិហារ', 65:'ឧត្តរមានជ័យ',
+  72:'ក្រចេះ', 73:'មណ្ឌលគីរី', 74:'ស្ទឹងត្រែង', 75:'រតនគីរី'
+};
+
+const db = {
+  cellcard: { prefixes: [11,12,14,17,61,76,77,78,85,89,92,95,99], color: '#1B3A6B' },
+  smart:    { prefixes: [10,15,16,69,70,81,86,87,93,96,98],       color: '#C40C0C' },
+  metfone:  { prefixes: [31,60,66,67,68,71,88,90,97],             color: '#1B3A6B' },
+  qb:       { prefixes: [13,80,83,84],                             color: '#C40C0C' },
+  seatel:   { prefixes: [18],                                      color: '#1B3A6B' },
+  cootel:   { prefixes: [38],                                      color: '#C40C0C' },
+};
+
+let lang = 'en';
+let lastCheckedVal = null;
+
+function t(key) { return strings[lang][key]; }
+
+function setLang(l) {
+  lang = l;
+  document.body.className = l;
+  document.getElementById('btn-en').classList.toggle('active', l === 'en');
+  document.getElementById('btn-km').classList.toggle('active', l === 'km');
+  applyStrings();
+  if (lastCheckedVal !== null) checkPrefix(lastCheckedVal);
+}
+
+function applyStrings() {
+  document.getElementById('title-main').innerHTML = t('titleMain');
+  document.getElementById('subtitle').textContent = t('subtitle');
+  document.getElementById('input-label').textContent = t('inputLabel');
+  document.getElementById('check-btn').textContent = t('checkBtn');
+  document.getElementById('quick-ref-title').textContent = t('quickRefTitle');
+  document.getElementById('footer-text').textContent = t('footer');
+  document.getElementById('inline-btn-label').textContent = t('inlineBtnLabel');
+  document.getElementById('bar-text').textContent = t('barText');
+  document.getElementById('bar-install-btn').textContent = t('barBtn');
+  document.getElementById('popup-install-btn').textContent = t('popupInstallBtn');
+  rebuildChips();
+}
+
+function checkPrefix(prefillValue) {
+  const input = document.getElementById('prefix-input');
+  const val = prefillValue !== undefined ? prefillValue : parseInt(input.value);
+  const card = document.getElementById('result-card');
+  const dot = document.getElementById('result-dot');
+  const typeEl = document.getElementById('result-type');
+  const nameEl = document.getElementById('result-name');
+  const detailEl = document.getElementById('result-detail');
+
+  card.classList.remove('visible', 'error-card');
+
+  if (isNaN(val) || val < 10 || val > 99) {
+    lastCheckedVal = null;
+    card.classList.add('visible', 'error-card');
+    dot.style.background = '#C40C0C';
+    typeEl.textContent = t('typeError');
+    nameEl.textContent = t('invalidMsg');
+    nameEl.style.color = '#C40C0C';
+    detailEl.textContent = t('invalidDetail');
+    return;
+  }
+
+  lastCheckedVal = val;
+  if (prefillValue === undefined) input.value = val;
+
+  for (const [carrier, data] of Object.entries(db)) {
+    if (data.prefixes.includes(val)) {
+      card.classList.add('visible');
+      dot.style.background = data.color;
+      typeEl.textContent = t('typeMobile');
+      nameEl.textContent = carrier.toUpperCase();
+      nameEl.style.color = data.color;
+      detailEl.textContent = t('mobileDetail').replace('{val}', val).replace('{carrier}', carrier.charAt(0).toUpperCase() + carrier.slice(1));
+      return;
+    }
+  }
+
+  const landline = lang === 'km' ? landlineKm : landlineEn;
+  const place = landline[val];
+  if (place) {
+    card.classList.add('visible');
+    dot.style.background = '#1B3A6B';
+    typeEl.textContent = t('typeLandline');
+    nameEl.textContent = place;
+    nameEl.style.color = '#1B3A6B';
+    detailEl.textContent = t('landlineDetail').replace('{val}', val).replace('{place}', place);
+    return;
+  }
+
+  lastCheckedVal = null;
+  card.classList.add('visible', 'error-card');
+  dot.style.background = '#C40C0C';
+  typeEl.textContent = t('typeUnknown');
+  nameEl.textContent = t('notRegistered');
+  nameEl.style.color = '#C40C0C';
+  detailEl.textContent = t('notRegisteredDetail').replace('{val}', val);
+}
+
+function rebuildChips() {
+  const grid = document.getElementById('carrier-grid');
+  grid.innerHTML = '';
+  for (const [carrier, data] of Object.entries(db)) {
+    const chip = document.createElement('div');
+    chip.className = 'carrier-chip';
+    const sample = data.prefixes[0];
+    chip.innerHTML = `<div class="chip-name" style="color:${data.color}">${carrier.toUpperCase()}</div><div class="chip-prefixes">${data.prefixes.join(', ')}</div>`;
+    chip.onclick = () => {
+      document.getElementById('prefix-input').value = sample;
+      checkPrefix(sample);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    grid.appendChild(chip);
+  }
+
+  const llChip = document.createElement('div');
+  llChip.className = 'carrier-chip';
+  llChip.innerHTML = `<div class="chip-name" style="color:#1B3A6B">${t('landlineChip')}</div><div class="chip-prefixes">${t('landlineChipSub')}</div>`;
+  llChip.onclick = () => {
+    document.getElementById('prefix-input').value = 23;
+    checkPrefix(23);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  grid.appendChild(llChip);
+}
+
+document.getElementById('prefix-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPrefix();
+});
+
+// If already running as installed PWA, hide install UI
+if (isInstalled) {
+  document.getElementById('inline-install-btn').style.display = 'none';
+}
+
+applyStrings();
+</script>
+</body>
+</html>
